@@ -11,12 +11,20 @@ import UIKit
 
 struct TimeSheet: Codable{
     var days: [Day]?
+    
+//    init(days: [Day]){
+//        self.days = days
+//    }
 }
 
 struct Day : Codable {
-    var dateSince1970: Int?
-    var PunchIn: [Int]?
-    var PunchOut: [Int]?
+    var dateSince1970: Int
+    var punchIn: [Int]
+    
+    init(dateSince1970: Int, punchIn: [Int]){
+        self.dateSince1970 = dateSince1970
+        self.punchIn = punchIn
+    }
 }
 
 class ViewController: UIViewController {
@@ -68,12 +76,38 @@ class ViewController: UIViewController {
     
     
     
-    @objc func handlePunch() {
-        let url = FileManager.documentDirectoryURL.appendingPathComponent("timeSheet.json")
-        let fileManager = FileManager.default
+    @objc func handlePunch(sender: UIButton) {
         let dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         guard let currentDate = Calendar.current.date(from: dateComponents) else { return }
         let currentDateSince1970 = Int(currentDate.timeIntervalSince1970)
+        
+        
+        
+        //grab timesheet.json and check if any errors loading data
+        var timeSheet = DataManager.shared.loadJson()
+        if timeSheet.days == nil {
+            timeWorkedLabel.text = "error loading data, try again"
+            return
+        } else {
+            //timesheet is good, preceded to check if today exist
+            var todayExist = false
+            guard let days = timeSheet.days else { timeWorkedLabel.text = "Error upwrapping timesheet"; return}
+            for (index, day) in days.enumerated() {
+                if day.dateSince1970 == currentDateSince1970 {
+                    //today exist, add punch
+                    todayExist = true
+                    timeSheet.days?[index].punchIn.append(Int(Date().timeIntervalSince1970))
+                    DataManager.shared.saveJson(timeSheet: timeSheet)
+                    break
+                }
+            }
+            if todayExist == false {
+                //today doesnt exist, add new day and punch
+                let day = Day(dateSince1970: currentDateSince1970, punchIn: [Int(Date().timeIntervalSince1970)])
+                timeSheet.days?.append(day)
+                DataManager.shared.saveJson(timeSheet: timeSheet)
+            }
+        }
         
         if isPunchedIn == false {
             isPunchedIn = true
@@ -81,52 +115,6 @@ class ViewController: UIViewController {
             punchOutButton.isHidden = false
             timePunchedIn = Int(Date().timeIntervalSince1970)
             DataManager.shared.saveData(data: createData())
-            
-            //check if file exists
-            
-            
-            if fileManager.fileExists(atPath: url.path) {
-                guard let data = try? Data(contentsOf: url) else { return }
-                guard var decodedData = try? JSONDecoder().decode(TimeSheet.self, from: data) else { return }
-                //check if today exist
-                var todayExist = false
-                guard let daysArray = decodedData.days else { return }
-                
-                for (index, day) in daysArray.enumerated() {
-                    if day.dateSince1970 == currentDateSince1970 {
-                        //today exist
-                        todayExist = true
-                        print("punch in")
-                        print("before append")
-                        print(decodedData)
-                        decodedData.days?[index].PunchIn?.append(timePunchedIn)
-                        print("after append")
-                        print(decodedData)
-                        DataManager.shared.saveJson(timeSheet: decodedData)
-                        break
-                    }
-                }
-                if todayExist == false {
-                    //today doesnt exist
-                    var newDay = Day()
-                    newDay.dateSince1970 = currentDateSince1970
-                    newDay.PunchIn = [timePunchedIn]
-                    newDay.PunchOut = [Int]()
-                    decodedData.days?.append(newDay)
-                    DataManager.shared.saveJson(timeSheet: decodedData)
-                    print(decodedData)
-                }
-            } else {
-                //create file
-                print("create file")
-                var timeSheet = TimeSheet()
-                var day = Day()
-                day.dateSince1970 = currentDateSince1970
-                day.PunchIn = [Int]()
-                day.PunchOut = [Int]()
-                timeSheet.days = [day]
-                DataManager.shared.saveJson(timeSheet: timeSheet)
-            }
         } else {
             isPunchedIn = false
             punchOutButton.isHidden = true
@@ -134,24 +122,7 @@ class ViewController: UIViewController {
             totalTimeWorked += Int(NSDate().timeIntervalSince1970) - timePunchedIn
             updateUI()
             DataManager.shared.saveData(data: createData())
-            
-            guard let data = try? Data(contentsOf: url) else { return }
-            do {
-                var decodedData = try JSONDecoder().decode(TimeSheet.self, from: data)
-                guard let days = decodedData.days else { return }
-                for (index, day) in days.enumerated() {
-                    if day.dateSince1970 == currentDateSince1970 {
-                        decodedData.days?[index].PunchIn?.append(Int(Date().timeIntervalSince1970))
-                        DataManager.shared.saveJson(timeSheet: decodedData)
-                        break
-                    }
-                }
-            } catch {
-                print(error)
-            }
-            
         }
-        
     }
     
     func createData() -> NSMutableDictionary {

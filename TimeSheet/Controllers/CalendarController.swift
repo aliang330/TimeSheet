@@ -14,7 +14,7 @@ import UIKit
 
 class CalendarController: UIViewController {
     
-    var timeSheetData: TimeSheet?
+    var timeSheet: TimeSheet?
     
     
 //    var punchesTableViewDelegate: CalendarControllerDelegate?
@@ -30,7 +30,7 @@ class CalendarController: UIViewController {
     }
     
     override func viewDidAppear(_ animated: Bool) {
-        timeSheetData = DataManager.shared.loadJson()
+        timeSheet = DataManager.shared.loadJson()
         punchTableViewController.tableView.reloadData()
     }
     
@@ -114,9 +114,15 @@ extension CalendarController: CalendarViewControllerDelegate {
         let dateComponent = DateComponents(calendar: Calendar.current, year: year, month: month, day: day)
         let selectedDateSince1970 = Int(Calendar.current.date(from: dateComponent)!.timeIntervalSince1970)
         var punchArray = [[Int]]()
-        for day in timeSheetData!.days! {
+        guard let goodTimeSheet = timeSheet else { return }
+        if goodTimeSheet.days == nil {
+            return
+        }
+        guard let days = goodTimeSheet.days else { return }
+        
+        for day in days {
             if day.dateSince1970 == selectedDateSince1970 {
-                guard let punchInArray = day.PunchIn else { return }
+                let punchInArray = day.punchIn
                 var count = 0
                 while count < punchInArray.count {
                     if count == punchInArray.count - 1 && punchInArray.count % 2 != 0{

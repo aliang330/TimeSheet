@@ -45,16 +45,11 @@ class DataManager {
         let url = FileManager.documentDirectoryURL.appendingPathComponent("timeSheet.json")
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: url.path) {
-            var timeSheet = TimeSheet()
-            var day = Day()
             let dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-            let currentDate = Calendar.current.date(from: dateComponents)!
+            guard let currentDate = Calendar.current.date(from: dateComponents) else { return TimeSheet() }
             let currentDateSince1970 = Int(currentDate.timeIntervalSince1970)
-
-            day.dateSince1970 = currentDateSince1970
-            day.PunchIn = [Int]()
-            day.PunchOut = [Int]()
-            timeSheet.days = [day]
+            let day = Day(dateSince1970: currentDateSince1970, punchIn: [Int]())
+            let timeSheet = TimeSheet(days: [day])
             DataManager.shared.saveJson(timeSheet: timeSheet)
         }
         
