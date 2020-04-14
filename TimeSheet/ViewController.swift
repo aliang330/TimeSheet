@@ -33,6 +33,8 @@ class ViewController: UIViewController {
     var isPunchedIn = false
     var timePunchedIn = 0
     var totalTimeWorked = 0
+    var shiftTimer: Timer?
+//    var shiftTime = 0
     
     var loadedData: NSMutableDictionary!
     
@@ -72,7 +74,7 @@ class ViewController: UIViewController {
     let timeWorkedLabel = UILabel(text: "00:00:00", font: .boldSystemFont(ofSize: 60))
     
     
-    let workLabel = UILabel(text: "Time Worked", font: .boldSystemFont(ofSize: 40))
+    let workLabel = UILabel(text: "Shift Timer", font: .boldSystemFont(ofSize: 40))
     
     
     
@@ -115,7 +117,13 @@ class ViewController: UIViewController {
             punchOutButton.isHidden = false
             timePunchedIn = Int(Date().timeIntervalSince1970)
             DataManager.shared.saveData(data: createData())
+            shiftTimerLabel.text = "00:00:00"
+            shiftTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (_) in
+                let timeInSeconds = Int(Date().timeIntervalSince1970) - self.timePunchedIn
+                self.shiftTimerLabel.text = self.convertSecondsToTimeString(seconds: timeInSeconds)
+            })
         } else {
+            shiftTimer?.invalidate()
             isPunchedIn = false
             punchOutButton.isHidden = true
             punchInButton.isHidden = false
@@ -142,7 +150,11 @@ class ViewController: UIViewController {
     func updateUI() {
         
         
-        let (h, m , s) = DataManager.shared.secondsToHoursMinutesSeconds(seconds: totalTimeWorked)
+        timeWorkedLabel.text = convertSecondsToTimeString(seconds: totalTimeWorked)
+    }
+    
+    func convertSecondsToTimeString(seconds: Int) -> String {
+        let (h, m , s) = DataManager.shared.secondsToHoursMinutesSeconds(seconds: seconds)
         
         var timeString = ""
         
@@ -162,11 +174,8 @@ class ViewController: UIViewController {
             timeString += "\(s)"
         }
         
-        timeWorkedLabel.text = timeString
-        
+        return timeString
     }
-    
-    
     
     func setupView() {
         
@@ -190,18 +199,23 @@ class ViewController: UIViewController {
         punchButtonStackView.widthAnchor.constraint(equalToConstant: 300).isActive = true
         punchButtonStackView.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
-        view.addSubview(timeWorkedLabel)
+        view.addSubview(shiftTimerLabel)
         
-        timeWorkedLabel.topAnchor.constraint(equalTo: punchButtonStackView.bottomAnchor, constant: 300).isActive = true
-        timeWorkedLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        timeWorkedLabel.widthAnchor.constraint(equalTo: view.widthAnchor, constant: 60).isActive = true
-        timeWorkedLabel.heightAnchor.constraint(equalToConstant: 60).isActive = true
+        shiftTimerLabel.topAnchor.constraint(equalTo: punchButtonStackView.bottomAnchor, constant: 300).isActive = true
+        shiftTimerLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        shiftTimerLabel.widthAnchor.constraint(equalTo: view.widthAnchor, constant: 60).isActive = true
+        shiftTimerLabel.heightAnchor.constraint(equalToConstant: 60).isActive = true
         
         view.addSubview(workLabel)
         
-        workLabel.bottomAnchor.constraint(equalTo: timeWorkedLabel.topAnchor, constant: -30).isActive = true
+        workLabel.bottomAnchor.constraint(equalTo: shiftTimerLabel.topAnchor, constant: -30).isActive = true
         workLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
     }
+    
+    let shiftTimerLabel: UILabel = {
+        let lb = UILabel(text: "00:00:00", font: .boldSystemFont(ofSize: 60))
+        return lb
+    }()
 
 }
 
