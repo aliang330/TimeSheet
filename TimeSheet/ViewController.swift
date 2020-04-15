@@ -82,9 +82,6 @@ class ViewController: UIViewController {
         let dateComponents = Calendar.current.dateComponents([.year, .month, .day], from: Date())
         guard let currentDate = Calendar.current.date(from: dateComponents) else { return }
         let currentDateSince1970 = Int(currentDate.timeIntervalSince1970)
-        
-        
-        
         //grab timesheet.json and check if any errors loading data
         var timeSheet = DataManager.shared.loadJson()
         if timeSheet.days == nil {
@@ -92,25 +89,26 @@ class ViewController: UIViewController {
             return
         } else {
             //timesheet is good, preceded to check if today exist
-            var todayExist = false
-            guard let days = timeSheet.days else { timeWorkedLabel.text = "Error upwrapping timesheet"; return}
-            for (index, day) in days.enumerated() {
-                if day.dateSince1970 == currentDateSince1970 {
-                    //today exist, add punch
-                    todayExist = true
-                    timeSheet.days?[index].punchIn.append(Int(Date().timeIntervalSince1970))
+            guard let timeSheetDays = timeSheet.days else { return }
+            if timeSheetDays.last?.dateSince1970 == currentDateSince1970 {
+                if var punchInArray = timeSheetDays.last?.punchIn {
+                    punchInArray.append(Int(Date().timeIntervalSince1970))
+                    timeSheet.days?[timeSheetDays.count - 1].punchIn = punchInArray
                     DataManager.shared.saveJson(timeSheet: timeSheet)
-                    break
+                    handlePunchUI()
                 }
-            }
-            if todayExist == false {
-                //today doesnt exist, add new day and punch
+            } else {
+                //today doesnt exist
                 let day = Day(dateSince1970: currentDateSince1970, punchIn: [Int(Date().timeIntervalSince1970)])
                 timeSheet.days?.append(day)
                 DataManager.shared.saveJson(timeSheet: timeSheet)
+                handlePunchUI()
             }
         }
         
+    }
+    
+    func handlePunchUI() {
         if isPunchedIn == false {
             isPunchedIn = true
             punchInButton.isHidden = true
