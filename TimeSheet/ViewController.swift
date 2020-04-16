@@ -44,7 +44,6 @@ class ViewController: UIViewController {
         loadedData = DataManager.shared.checkIfDataFileExists()
         loadData(from: loadedData)
         setupView()
-        updateUI()
     }
     
     
@@ -146,9 +145,12 @@ class ViewController: UIViewController {
     }
     
     func updateUI() {
-        
-        
-        timeWorkedLabel.text = convertSecondsToTimeString(seconds: totalTimeWorked)
+        if isPunchedIn {
+            shiftTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (_) in
+                let timeInSeconds = Int(Date().timeIntervalSince1970) - self.timePunchedIn
+                self.shiftTimerLabel.text = self.convertSecondsToTimeString(seconds: timeInSeconds)
+            })
+        }
     }
     
     func convertSecondsToTimeString(seconds: Int) -> String {
